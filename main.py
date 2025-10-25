@@ -28,7 +28,7 @@ def open_image():
 title = ctk.CTkLabel(frame, text="Select The Image with the Course List", width=400, height=60, font=ctk.CTkFont(family="Arial", size=50, weight="bold"))
 title.place(relx=0.5, rely=0.13, anchor="center")
 
-img = ctk.CTkImage(light_image=Image.open("C:/Users/chinm/Desktop/App/select1.png"), dark_image=Image.open("C:/Users/chinm/Desktop/App/select1.png"), size=(1000,480))
+img = ctk.CTkImage(light_image=Image.open("C:/Users/chinm/Desktop/App/img/select1.png"), dark_image=Image.open("C:/Users/chinm/Desktop/App/select1.png"), size=(1000,480))
 lbl = ctk.CTkLabel(frame, text="", image=img, corner_radius=20)
 lbl.place(relx=0.5,rely=0.52, anchor="center")
 
