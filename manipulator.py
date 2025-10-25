@@ -1,14 +1,11 @@
 import customtkinter as ctk
 import json
-import threading
-from PIL import Image, ImageTk
-from test import replace_values_async  # Import the async version
+from PIL import Image
+from test import replace_values_async
 
 
 def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
-    """
-    Called when save button is clicked. Processes image with OCR in background.
-    """
+    """Called when save button is clicked. Processes image with OCR in background."""
     
     # File paths
     image_path = "image.png"
@@ -44,23 +41,29 @@ def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
     
     def update_progress(percentage):
         """Update progress bar and label safely from any thread"""
-        app.after(0, lambda: progress_bar.set(percentage / 100))
-        app.after(0, lambda: percent_label.configure(text=f"{percentage}%"))
-        
-        # Update status messages based on progress
-        if percentage < 20:
-            app.after(0, lambda: status_label.configure(text="Loading image and JSON..."))
-        elif percentage < 70:
-            app.after(0, lambda: status_label.configure(text="Running OCR detection..."))
-        elif percentage < 90:
-            app.after(0, lambda: status_label.configure(text="Replacing values..."))
-        else:
-            app.after(0, lambda: status_label.configure(text="Saving output..."))
+        try:
+            app.after(0, lambda: progress_bar.set(percentage / 100))
+            app.after(0, lambda: percent_label.configure(text=f"{percentage}%"))
+            
+            # Update status messages based on progress
+            if percentage < 20:
+                app.after(0, lambda: status_label.configure(text="Loading image and JSON..."))
+            elif percentage < 70:
+                app.after(0, lambda: status_label.configure(text="Running OCR detection..."))
+            elif percentage < 90:
+                app.after(0, lambda: status_label.configure(text="Replacing values..."))
+            else:
+                app.after(0, lambda: status_label.configure(text="Saving output..."))
+        except:
+            pass
     
     def on_complete(modified_img, replacements, error):
         """Called when OCR processing completes"""
-        # Close progress window
-        progress_window.destroy()
+        try:
+            # Close progress window
+            progress_window.destroy()
+        except:
+            pass
         
         if error:
             # Show error dialog
@@ -88,31 +91,40 @@ def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
         success_window.title("Success")
         success_window.geometry("400x200")
         
+        num_replacements = len(replacements) if replacements else 0
+        
         success_label = ctk.CTkLabel(
             success_window,
-            text=f"✓ Processing Complete!\n\n{len(replacements)} replacements made",
+            text=f"✓ Processing Complete!\n\n{num_replacements} replacements made",
             font=("Arial", 16),
             text_color="green"
         )
         success_label.pack(pady=20)
         
         # Show some replacement details
-        if replacements:
-            details_text = "Replacements:\n"
-            pattern_counts = {}
-            for rep in replacements[:10]:  # Show first 10
-                pattern = rep['matched_pattern']
-                pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
-            
-            for pattern, count in pattern_counts.items():
-                details_text += f"  {pattern}: {count} instances\n"
-            
-            details_label = ctk.CTkLabel(
-                success_window,
-                text=details_text,
-                font=("Arial", 12)
-            )
-            details_label.pack(pady=10)
+        if replacements and len(replacements) > 0:
+            try:
+                details_text = "Replacements:\n"
+                pattern_counts = {}
+                
+                for rep in replacements[:10]:  # Show first 10
+                    try:
+                        pattern = rep.get('pattern', rep.get('matched_pattern', 'Unknown'))
+                        pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
+                    except:
+                        continue
+                
+                for pattern, count in pattern_counts.items():
+                    details_text += f"  {pattern}: {count} instances\n"
+                
+                details_label = ctk.CTkLabel(
+                    success_window,
+                    text=details_text,
+                    font=("Arial", 12)
+                )
+                details_label.pack(pady=10)
+            except:
+                pass
         
         close_button = ctk.CTkButton(
             success_window,
@@ -123,19 +135,39 @@ def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
         
         # Optional: Display the modified image
         try:
-            # Load and display modified image
             display_modified_image(app, output_path)
         except Exception as e:
             print(f"Could not display image: {e}")
     
     # Start async OCR processing (non-blocking)
-    replace_values_async(
-        image_path=image_path,
-        json_path=json_path,
-        output_path=output_path,
-        callback=on_complete,
-        progress_callback=update_progress
-    )
+    try:
+        replace_values_async(
+            image_path=image_path,
+            json_path=json_path,
+            output_path=output_path,
+            callback=on_complete,
+            progress_callback=update_progress
+        )
+    except Exception as e:
+        progress_window.destroy()
+        
+        error_window = ctk.CTkToplevel(app)
+        error_window.title("Error")
+        error_window.geometry("400x150")
+        
+        error_label = ctk.CTkLabel(
+            error_window, 
+            text=f"Failed to start processing:\n{str(e)}",
+            text_color="red"
+        )
+        error_label.pack(pady=20)
+        
+        ok_button = ctk.CTkButton(
+            error_window, 
+            text="OK", 
+            command=error_window.destroy
+        )
+        ok_button.pack(pady=10)
 
 
 def display_modified_image(app, image_path):
@@ -170,10 +202,7 @@ def display_modified_image(app, image_path):
 
 
 def prepare_json_for_ocr():
-    """
-    Prepare JSON file format for OCR processing.
-    Converts comma-separated string values to lists.
-    """
+    """Prepare JSON file format for OCR processing."""
     try:
         with open("details.json", "r") as f:
             data = json.load(f)
@@ -181,13 +210,13 @@ def prepare_json_for_ocr():
         new_data = []
         for item in data:
             # If value is a string, split by comma
-            if isinstance(item["value"], str):
+            if isinstance(item.get("value"), str):
                 new_data.append({
                     "key": item["key"],
                     "value": [v.strip() for v in item["value"].split(",") if v.strip()]
                 })
             # If already a list, keep as is
-            elif isinstance(item["value"], list):
+            elif isinstance(item.get("value"), list):
                 new_data.append(item)
         
         # Save formatted JSON

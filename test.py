@@ -38,11 +38,9 @@ def normalize_for_pattern(text, pattern):
     
     # Special case: I3 pattern
     if pattern_upper == "I3":
-        # Convert common I3 misreads
         if len(text_upper) == 2 and text_upper[1] == '3':
             if text_upper[0] in ['1', 'L', '|', '!']:
                 return 'I3'
-        # OCR reads 3 as 8, B, or E
         i3_map = {'13': 'I3', 'L3': 'I3', '|3': 'I3', '!3': 'I3',
                  'I8': 'I3', 'IB': 'I3', 'IE': 'I3', '18': 'I3', 'L8': 'I3'}
         if text_upper in i3_map:
@@ -57,13 +55,24 @@ def normalize_for_pattern(text, pattern):
         if text_upper in f1_map:
             return 'F1'
     
-    # For all other patterns: standard normalization
-    # Convert O to 0
+    # Special case: E1 pattern
+    elif pattern_upper == "E1":
+        if len(text_upper) == 2 and text_upper[0] == 'E':
+            if text_upper[1] in ['L', 'l', '|', '!', 'I']:
+                return 'E1'
+        e1_map = {'EL': 'E1', 'E|': 'E1', 'E!': 'E1', 'EI': 'E1'}
+        if text_upper in e1_map:
+            return 'E1'
+    
+    # For single-letter patterns (A, B, C, D, etc.) - they should match with digits
+    # So don't normalize away the second character
+    
+    # Standard normalization for all others
     text_upper = text_upper.replace('O', '0')
     
-    # For 2-character patterns, convert L/l/|/! to 1 at position 1
+    # For 2-character patterns where second char looks like 1
     if len(text_upper) == 2:
-        if text_upper[1] in ['L', 'l', '|', '!']:
+        if text_upper[1] in ['L', 'l', '|', '!', 'I']:
             text_upper = text_upper[0] + '1'
     
     return text_upper
@@ -83,7 +92,9 @@ def matches_pattern(text, pattern):
     if text_norm == pattern_upper:
         return True
     
-    # Pattern + digits (B matches B1, B2, B3, etc.)
+    # CRITICAL: Pattern + digits matching
+    # If pattern is "B", it should match "B1", "B2", "B3"
+    # But NOT if we have an exact pattern like "B1" in the pattern map
     if text_norm.startswith(pattern_upper):
         rest = text_norm[len(pattern_upper):]
         if rest and rest.isdigit():
@@ -105,6 +116,10 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
     
     # Load patterns
     pattern_map = load_replacement_mapping(json_path)
+    
+    # Sort patterns by length (longer first) to match exact patterns before prefixes
+    # This ensures "E1" is checked before "E"
+    patterns_sorted = sorted(pattern_map.items(), key=lambda x: len(x[0]), reverse=True)
     
     # Read image
     img = cv2.imread(str(image_path))
@@ -159,7 +174,6 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
                     except:
                         conf = 0
                     
-                    # Low threshold for 2-char, higher for longer
                     min_conf = 10 if len(text) <= 2 else 25
                     if conf < min_conf:
                         continue
@@ -189,12 +203,11 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
             if check_pos in processed:
                 continue
             
-            # Find replacement
+            # Find replacement - check longer patterns first
             replacement = None
             matched_pattern = None
             
-            # Try each pattern
-            for pattern, repl in pattern_map.items():
+            for pattern, repl in patterns_sorted:
                 if matches_pattern(text_orig, pattern):
                     replacement = repl
                     matched_pattern = pattern
@@ -262,11 +275,11 @@ def replace_values_async(image_path, json_path, output_path='output.png',
     return thread
 
 
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     try:
         img, reps = replace_text_in_cells("image.png", "details.json", "output.jpg")
         print(f"✓ Success! Made {len(reps)} replacements:")
         for r in reps[:30]:
             print(f"  '{r['original']}' → '{r['replacement']}' (pattern: {r['pattern']})")
     except Exception as e:
-        print(f"✗ Error: {e}")
+        print(f"✗ Error: {e}")"""
