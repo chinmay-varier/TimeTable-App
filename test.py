@@ -78,13 +78,13 @@ def matchesPattern(text, pattern):
         return True
     
 
-    text_norm = normalizeForPattern(txtU, ptrnU)
-    if text_norm == ptrnU:
+    normtext = normalizeForPattern(txtU, ptrnU)
+    if normtext == ptrnU:
         return True
     
 
-    if text_norm.startswith(ptrnU):
-        rest = text_norm[len(ptrnU):]
+    if normtext.startswith(ptrnU):
+        rest = normtext[len(ptrnU):]
         if rest and rest.isdigit():
             return True
     
@@ -109,9 +109,9 @@ def replacetxtCells(image_path, json_path, output_path='output.png'):
     
 
     img = cv2.imread(str(image_path))
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    pil_img = Image.fromarray(img_rgb)
-    imgo = pil_img.copy()
+    imgrgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    pilimg = Image.fromarray(imgrgb)
+    imgo = pilimg.copy()
     draw = ImageDraw.Draw(imgo)
     
  
@@ -134,14 +134,14 @@ def replacetxtCells(image_path, json_path, output_path='output.png'):
     denoised = cv2.fastNlMeansDenoising(gray, h=10)
     _, blow = cv2.threshold(gray, 130, 255, cv2.THRESH_BINARY)
     
-    images_to_try = [binary, adaptive, denoised, blow]
+    imgtotry = [binary, adaptive, denoised, blow]
     
     replacements = []
     processed = set()
     all_detections = {}
     
 
-    for img_proc in images_to_try:
+    for img_proc in imgtotry:
         for psm in [6, 11, 3, 8, 10, 7]:
             try:
                 ocr_data = pytesseract.image_to_data(
@@ -232,7 +232,7 @@ def replacetxtCells(image_path, json_path, output_path='output.png'):
 
 
 
-replace_values_fixed = replacetxtCells
+repvalfix = replacetxtCells
 
 
 
