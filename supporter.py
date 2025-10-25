@@ -4,14 +4,21 @@ import json
 import customtkinter as ctk
 from tkinter import messagebox
 import os
+from manipulator import after_save
 
 def analysis(file_path):
     img = cv2.imread(file_path)
 
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    """cv2.imshow('i', gray)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()"""
     thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                 cv2.THRESH_BINARY, 15, 10)
+    """cv2.imshow('i', thresh)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()"""
 
 
     ocr_result = pytesseract.image_to_string(thresh, config='--psm 6')
@@ -106,6 +113,7 @@ def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
             if len(json_data) > 9:    json.dump(new_data, f)
             else: json.dump(json_data,f)
         messagebox.showinfo("Saved", "JSON file updated successfully.")
+        after_save(app, frame, frame_main)
 
     btn_add = ctk.CTkButton(app, text="Add New Courses", command=add_new)
     btn_add.pack(side="left", padx=15, pady=10)
