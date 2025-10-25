@@ -56,7 +56,6 @@ def analysis(file_path):
 
 def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
     frame.destroy()
-    frame = ctk.CTkFrame(app, width=1320, height=700)
     json_path = "details.json"
 
     if os.path.exists(json_path):
@@ -113,7 +112,7 @@ def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
             if len(json_data) > 9:    json.dump(new_data, f)
             else: json.dump(json_data,f)
         messagebox.showinfo("Saved", "JSON file updated successfully.")
-        after_save(app, frame, frame_main)
+        after_save(app, frame_main)
 
     btn_add = ctk.CTkButton(app, text="Add New Courses", command=add_new)
     btn_add.pack(side="left", padx=15, pady=10)

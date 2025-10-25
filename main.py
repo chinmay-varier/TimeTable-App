@@ -7,7 +7,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 App = ctk.CTk()
-App.title("App")
+App.title("Time Table Maker")
 App.geometry("1340x720")
 App.resizable(width=False, height=False)
 frame = ctk.CTkFrame(master=App, width=1320, height=700)
