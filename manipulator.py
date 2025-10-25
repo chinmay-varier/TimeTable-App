@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import json
 from PIL import Image
-from test import replace_values_async
+from test import replaceValuesAsync
 
 
 def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
@@ -141,7 +141,7 @@ def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
     
     # Start async OCR processing (non-blocking)
     try:
-        replace_values_async(
+        replaceValuesAsync(
             image_path=image_path,
             json_path=json_path,
             output_path=output_path,

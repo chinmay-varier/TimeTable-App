@@ -6,12 +6,11 @@ from pathlib import Path
 import threading
 
 
-def load_replacement_mapping(json_path):
-    """Load JSON - handles both list and comma-separated string values."""
+def loadReplacementMapping(json_path):
     with open(json_path, 'r') as f:
         data = json.load(f)
     
-    pattern_map = {}
+    patrnMap = {}
     for item in data:
         key = str(item.get('key', ''))
         values = item.get('value', [])
@@ -23,90 +22,78 @@ def load_replacement_mapping(json_path):
             for v in values:
                 if v:
                     v_clean = str(v).upper().strip()
-                    pattern_map[v_clean] = key
+                    patrnMap[v_clean] = key
     
-    return pattern_map
+    return patrnMap
 
 
-def normalize_for_pattern(text, pattern):
-    """Smart normalization based on what pattern we're looking for."""
+def normalizeForPattern(text, pattern):
     if not text or not pattern:
         return text.upper().strip() if text else ""
     
-    text_upper = str(text).upper().strip().replace(' ', '').replace('.', '')
-    pattern_upper = str(pattern).upper().strip()
-    
-    # Special case: I3 pattern
-    if pattern_upper == "I3":
-        if len(text_upper) == 2 and text_upper[1] == '3':
-            if text_upper[0] in ['1', 'L', '|', '!']:
+    txtU = str(text).upper().strip().replace(' ', '').replace('.', '')
+    ptrnU = str(pattern).upper().strip()
+ 
+    if ptrnU == "I3":
+        if len(txtU) == 2 and txtU[1] == '3':
+            if txtU[0] in ['1', 'L', '|', '!']:
                 return 'I3'
         i3_map = {'13': 'I3', 'L3': 'I3', '|3': 'I3', '!3': 'I3',
                  'I8': 'I3', 'IB': 'I3', 'IE': 'I3', '18': 'I3', 'L8': 'I3'}
-        if text_upper in i3_map:
+        if txtU in i3_map:
             return 'I3'
     
-    # Special case: F1 pattern
-    elif pattern_upper == "F1":
-        if len(text_upper) == 2 and text_upper[0] == 'F':
-            if text_upper[1] in ['L', 'l', '|', '!', 'I']:
+    elif ptrnU == "F1":
+        if len(txtU) == 2 and txtU[0] == 'F':
+            if txtU[1] in ['L', 'l', '|', '!', 'I']:
                 return 'F1'
         f1_map = {'FL': 'F1', 'F|': 'F1', 'F!': 'F1', 'FI': 'F1'}
-        if text_upper in f1_map:
+        if txtU in f1_map:
             return 'F1'
     
-    # Special case: E1 pattern
-    elif pattern_upper == "E1":
-        if len(text_upper) == 2 and text_upper[0] == 'E':
-            if text_upper[1] in ['L', 'l', '|', '!', 'I']:
+    elif ptrnU == "E1":
+        if len(txtU) == 2 and txtU[0] == 'E':
+            if txtU[1] in ['L', 'l', '|', '!', 'I']:
                 return 'E1'
         e1_map = {'EL': 'E1', 'E|': 'E1', 'E!': 'E1', 'EI': 'E1'}
-        if text_upper in e1_map:
+        if txtU in e1_map:
             return 'E1'
+  
+    txtU = txtU.replace('O', '0')
     
-    # For single-letter patterns (A, B, C, D, etc.) - they should match with digits
-    # So don't normalize away the second character
+
+    if len(txtU) == 2:
+        if txtU[1] in ['L', 'l', '|', '!', 'I']:
+            txtU = txtU[0] + '1'
     
-    # Standard normalization for all others
-    text_upper = text_upper.replace('O', '0')
-    
-    # For 2-character patterns where second char looks like 1
-    if len(text_upper) == 2:
-        if text_upper[1] in ['L', 'l', '|', '!', 'I']:
-            text_upper = text_upper[0] + '1'
-    
-    return text_upper
+    return txtU
 
 
-def matches_pattern(text, pattern):
-    """Match text against pattern with smart normalization."""
-    text_upper = str(text).upper().strip()
-    pattern_upper = str(pattern).upper().strip()
+def matchesPattern(text, pattern):
+    txtU = str(text).upper().strip()
+    ptrnU = str(pattern).upper().strip()
     
-    # Direct exact match first
-    if text_upper == pattern_upper:
+
+    if txtU == ptrnU:
         return True
     
-    # Try pattern-specific normalization
-    text_norm = normalize_for_pattern(text_upper, pattern_upper)
-    if text_norm == pattern_upper:
+
+    text_norm = normalizeForPattern(txtU, ptrnU)
+    if text_norm == ptrnU:
         return True
     
-    # CRITICAL: Pattern + digits matching
-    # If pattern is "B", it should match "B1", "B2", "B3"
-    # But NOT if we have an exact pattern like "B1" in the pattern map
-    if text_norm.startswith(pattern_upper):
-        rest = text_norm[len(pattern_upper):]
+
+    if text_norm.startswith(ptrnU):
+        rest = text_norm[len(ptrnU):]
         if rest and rest.isdigit():
             return True
     
     return False
 
 
-def replace_text_in_cells(image_path, json_path, output_path='output.png'):
-    """OCR replacement with pattern-specific normalization."""
+def replacetxtCells(image_path, json_path, output_path='output.png'):
     
-    # Validate paths
+
     image_path = Path(str(image_path).strip('"')).resolve()
     json_path = Path(str(json_path).strip('"')).resolve()
     output_path = Path(str(output_path).strip('"')).resolve()
@@ -114,21 +101,20 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
     if not image_path.exists() or not json_path.exists():
         raise FileNotFoundError("Files not found")
     
-    # Load patterns
-    pattern_map = load_replacement_mapping(json_path)
+
+    patrnMap = loadReplacementMapping(json_path)
     
-    # Sort patterns by length (longer first) to match exact patterns before prefixes
-    # This ensures "E1" is checked before "E"
-    patterns_sorted = sorted(pattern_map.items(), key=lambda x: len(x[0]), reverse=True)
+
+    patterns_sorted = sorted(patrnMap.items(), key=lambda x: len(x[0]), reverse=True)
     
-    # Read image
+
     img = cv2.imread(str(image_path))
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(img_rgb)
-    img_out = pil_img.copy()
-    draw = ImageDraw.Draw(img_out)
+    imgo = pil_img.copy()
+    draw = ImageDraw.Draw(imgo)
     
-    # Font
+ 
     font = None
     for fp in ["arial.ttf", "C:/Windows/Fonts/arial.ttf", "/Windows/Fonts/arial.ttf",
                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
@@ -140,21 +126,21 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
     if not font:
         font = ImageFont.load_default()
     
-    # Preprocessing
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
     adaptive = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                      cv2.THRESH_BINARY, 11, 2)
     denoised = cv2.fastNlMeansDenoising(gray, h=10)
-    _, binary_low = cv2.threshold(gray, 130, 255, cv2.THRESH_BINARY)
+    _, blow = cv2.threshold(gray, 130, 255, cv2.THRESH_BINARY)
     
-    images_to_try = [binary, adaptive, denoised, binary_low]
+    images_to_try = [binary, adaptive, denoised, blow]
     
     replacements = []
     processed = set()
     all_detections = {}
     
-    # Multiple OCR passes
+
     for img_proc in images_to_try:
         for psm in [6, 11, 3, 8, 10, 7]:
             try:
@@ -193,7 +179,7 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
             except:
                 continue
     
-    # Process detections
+
     for pos, det in all_detections.items():
         try:
             text_orig = str(det['text'])
@@ -203,25 +189,25 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
             if check_pos in processed:
                 continue
             
-            # Find replacement - check longer patterns first
+
             replacement = None
             matched_pattern = None
             
             for pattern, repl in patterns_sorted:
-                if matches_pattern(text_orig, pattern):
+                if matchesPattern(text_orig, pattern):
                     replacement = repl
                     matched_pattern = pattern
                     break
             
             if replacement and matched_pattern:
-                # Draw white box
+
                 pad = 8
                 draw.rectangle(
                     [x-pad, y-pad, x+w+pad, y+h+pad],
                     fill='white', outline=None
                 )
                 
-                # Center text
+
                 bbox = draw.textbbox((0, 0), replacement, font=font)
                 tw = bbox[2] - bbox[0]
                 th = bbox[3] - bbox[1]
@@ -239,27 +225,27 @@ def replace_text_in_cells(image_path, json_path, output_path='output.png'):
         except:
             continue
     
-    # Save
-    img_out.save(str(output_path), quality=95)
+
+    imgo.save(str(output_path), quality=95)
     
-    return img_out, replacements
+    return imgo, replacements
 
 
-# Aliases
-replace_values_fixed = replace_text_in_cells
+
+replace_values_fixed = replacetxtCells
 
 
-# Async
-def replace_values_async(image_path, json_path, output_path='output.png',
+
+def replaceValuesAsync(image_path, json_path, output_path='output.png',
                         tesseract_cmd=None, callback=None, progress_callback=None):
-    """Async wrapper."""
+
     
     def run():
         try:
             if progress_callback:
                 progress_callback(50)
             
-            img, reps = replace_text_in_cells(image_path, json_path, output_path)
+            img, reps = replacetxtCells(image_path, json_path, output_path)
             
             if progress_callback:
                 progress_callback(100)
@@ -274,12 +260,3 @@ def replace_values_async(image_path, json_path, output_path='output.png',
     thread.start()
     return thread
 
-
-"""if __name__ == "__main__":
-    try:
-        img, reps = replace_text_in_cells("image.png", "details.json", "output.jpg")
-        print(f"✓ Success! Made {len(reps)} replacements:")
-        for r in reps[:30]:
-            print(f"  '{r['original']}' → '{r['replacement']}' (pattern: {r['pattern']})")
-    except Exception as e:
-        print(f"✗ Error: {e}")"""
