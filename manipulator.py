@@ -1,8 +1,10 @@
 import customtkinter as ctk
 import json
+from test import replace_values
 
 def after_save(app: ctk.CTk, frame1:ctk.CTkFrame):
     app.quit()
+    replace_values("image.png", "details.json", "modified_timetable.jpg")
     App = ctk.CTk()
     App.title("Time Table")
     App.geometry("1340x720")
@@ -19,5 +21,7 @@ def after_save(app: ctk.CTk, frame1:ctk.CTkFrame):
     with open("details.json", "w") as f:
         json.dump(new_dat, f)
     print(new_dat)
+
+    
 
     App.mainloop()
