@@ -4,7 +4,7 @@ import json
 import customtkinter as ctk
 from tkinter import messagebox
 import os
-from manipulator import aftSave
+from manipulator import afterSave
 
 def analysis(file_path):
     img = cv2.imread(file_path)
@@ -112,7 +112,7 @@ def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
             if len(json_data) > 9:    json.dump(data2, f)
             else: json.dump(json_data,f)
         messagebox.showinfo("Saved", "JSON file updated successfully.")
-        aftSave(app, scrollFrame)
+        afterSave(app, scrollFrame)
 
     btn_add = ctk.CTkButton(app, text="Add New Courses", command=addNew)
     btn_add.pack(side="left", padx=15, pady=10)
