@@ -2,10 +2,11 @@ import customtkinter as ctk
 import json
 from PIL import Image
 from test import replaceValuesAsync
+from API import main1
 
 
 def after_save(app: ctk.CTk, frame1: ctk.CTkFrame):
-    """Called when save button is clicked. Processes image with OCR in background."""
+    main1.main()
     
     # File paths
     image_path = "image.png"
