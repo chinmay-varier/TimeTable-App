@@ -124,4 +124,8 @@ def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
 
     win2 = ctk.CTkToplevel(app)
     win2.title("Instructions")
-    win2.geometry("700x500")
+    from PIL import Image
+    img = ctk.CTkImage(light_image=Image.open("img/select2.png"), dark_image=Image.open("img/select2.png"), size=(1000,480))
+    imglbl = ctk.CTkLabel(win2, text="", image=img)
+    imglbl.pack()
+    win2.geometry("1100x500")
