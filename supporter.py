@@ -69,8 +69,9 @@ def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
 
 
 
-    scrollFrame = ctk.CTkScrollableFrame(app, width=460, height=580)
+    scrollFrame = ctk.CTkScrollableFrame(app, width=460, height=580, corner_radius=10, fg_color=("gray90", "gray20"))
     scrollFrame.pack(padx=20, pady=20, fill="both", expand=True)
+
 
     entry_widgets = []
 
@@ -114,10 +115,10 @@ def after_select(frame: ctk.CTkFrame, app: ctk.CTk):
         messagebox.showinfo("Saved", "JSON file updated successfully.")
         afterSave(app, scrollFrame)
 
-    btn_add = ctk.CTkButton(app, text="Add New Courses", command=addNew)
+    btn_add = ctk.CTkButton(app, text="➕Add New Courses", command=addNew)
     btn_add.pack(side="left", padx=15, pady=10)
 
-    btn_save = ctk.CTkButton(app, text="Save Changes", command=saveData)
+    btn_save = ctk.CTkButton(app, text="💾Save Changes", command=saveData)
     btn_save.pack(side="right", padx=15, pady=10)
 
     render_entries()
